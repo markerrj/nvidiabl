@@ -19,6 +19,10 @@
 #include <linux/pci.h>
 #include <linux/fb.h>
 #include <linux/moduleparam.h>
+#include <linux/backlight.h>
+
+extern struct driver_data nv4x_driver_data;
+extern struct driver_data nv5x_driver_data;
 
 #define NVIDIABL_STR_1(s) #s
 #define NVIDIABL_STR(s) NVIDIABL_STR_1(s)

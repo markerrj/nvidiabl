@@ -19,6 +19,7 @@
  * Second argument is the algortihm name that comes from nvidiabl-models.c (currently nv4x_driver_data or nv5x_driver_data)
  */
 
+
 /* Geforce Go 7800 (195.30) */
 NVIDIABL_DECLARE_GPU_MODEL(0x0098, nv4x_driver_data),
 /* Geforce Go 7800 GTX (195.30) */

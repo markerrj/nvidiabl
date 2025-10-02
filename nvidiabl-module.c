@@ -63,7 +63,9 @@ struct backlight_type_id {
 	enum backlight_type type;
 };
 
-static const struct backlight_type_id backlight_type_ids[] = { 
+#define BL_TYPE_ID_SIZE 3
+
+static const struct backlight_type_id backlight_type_ids[BL_TYPE_ID_SIZE] = {
 	{ "raw", BACKLIGHT_RAW },
 	{ "platform", BACKLIGHT_PLATFORM },
 	{ "firmware", BACKLIGHT_FIRMWARE }
@@ -163,6 +165,9 @@ static int nvidiabl_find_device(struct driver_data **dd, unsigned pci_device, un
 	return -ENODEV;
 }
 
+
+
+
 /*
  * Driver implementation
  */
@@ -213,12 +218,13 @@ static int __init nvidiabl_init(void)
         memset(&props, 0, sizeof(struct backlight_properties));
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,39)
 	
-	for (iii = 0 ; iii < sizeof(backlight_type_ids) ; iii++) {
-		if (strnicmp(bl_type, backlight_type_ids[iii].id, sizeof(bl_type)) == 0) {
+	for (iii = 0 ; iii < BL_TYPE_ID_SIZE ; iii++) {
+		if (strncasecmp(bl_type, backlight_type_ids[iii].id, sizeof(bl_type)) == 0) {
 			props.type = backlight_type_ids[iii].type;
 			printk(KERN_INFO "nvidiabl: backlight type is %s\n", backlight_type_ids[iii].id);
 		}
 	}
+
 #endif
 	nvidiabl_device = backlight_device_register("nvidia_backlight", NULL,
 	                                             driver_data,
@@ -229,7 +235,6 @@ static int __init nvidiabl_init(void)
                                                      driver_data,
                                                      &driver_data->backlight_ops);
 #endif
-                                                     
 	if (IS_ERR(nvidiabl_device)) {
 		driver_data->unmap(driver_data);
 		return PTR_ERR(nvidiabl_device);
@@ -291,15 +296,16 @@ static int __init nvidiabl_init(void)
                 driver_data->min = calc;
         }
         printk(KERN_INFO "nvidiabl: using value 0x%x as minimum\n", driver_data->min);
-        
-        
+
         /* Set up backlight device */
         nvidiabl_device->props.max_brightness = FB_BACKLIGHT_LEVELS - 1;
 	nvidiabl_device->props.brightness =
 		nvidiabl_device->ops->get_brightness(nvidiabl_device);
+
 	backlight_update_status(nvidiabl_device);
 	return 0;
 }
+
 
 #ifdef USE_PLATFORM_DRIVER
 static int nvidiabl_remove(struct platform_device *pdev)
@@ -323,6 +329,7 @@ static void __exit nvidiabl_exit(void)
 	return 0;
 #endif
 }
+
 
 /*
  * Platform driver implementation

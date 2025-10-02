@@ -13,6 +13,7 @@
  * (at your option) any later version.
  */
 
+
 #include "nvidiabl-models.h"
 
 /* Register constants */
@@ -44,6 +45,19 @@ static inline unsigned int set_intensity(unsigned int intensity, int off, int mi
         else
                 return min + div_rounded(intensity * (max - min), FB_BACKLIGHT_LEVELS - 1);
 }
+
+/*
+ * Device matching.
+ * The list of supported devices was primarily taken from NvClock,
+ * but only contains the mobile chips.
+ */
+const struct pci_device_id nvidiabl_device_table[] = {
+
+#include "nvidiabl-gpu.h"
+
+        /* end of list */
+        { }
+};
 
 /*
  * Implementation for NV4X chips
@@ -101,7 +115,7 @@ static int nv4x_map(struct driver_data *dd)
 		return -ENODEV;
 
 	/* Now really map (The address need not be page-aligned.) */
-	dd->smartdimmer = ioremap_nocache(reg_addr, dd->reg_size);
+	dd->smartdimmer = ioremap(reg_addr, dd->reg_size);
 	if (!dd->smartdimmer)
 		return -ENXIO;
 
@@ -128,7 +142,7 @@ static int nv4x_set_intensity(struct backlight_device *bd)
                 dd->off, 
                 dd->min, 
                 dd->max, 
-                (bd->props.power != FB_BLANK_UNBLANK || bd->props.fb_blank != FB_BLANK_UNBLANK)
+	        backlight_is_blank(bd)
         );
         
         iowrite32((ioread32(dd->smartdimmer) & ~NV4X_BL_REGISTER_MASK) | (intensity << 16),
@@ -136,7 +150,7 @@ static int nv4x_set_intensity(struct backlight_device *bd)
         return 0;
 }
 
-static struct driver_data nv4x_driver_data = {
+struct driver_data nv4x_driver_data = {
         .bar           = 0,
         .reg_offset1   = NV4X_BL_REGISTER_ADDR,
         .reg_size      = 4,
@@ -156,6 +170,7 @@ static struct driver_data nv4x_driver_data = {
                 .update_status  = nv4x_set_intensity,
         }
 };
+
 
 /*
  * Implementation for NV5X chips
@@ -202,8 +217,8 @@ static int nv5x_set_intensity(struct backlight_device *bd)
                 bd->props.brightness, 
                 dd->off, 
                 dd->min, 
-                dd->max, 
-                (bd->props.power != FB_BLANK_UNBLANK || bd->props.fb_blank != FB_BLANK_UNBLANK)
+                dd->max,
+	        backlight_is_blank(bd)
         );
         
 	iowrite32((ioread32(dd->smartdimmer) & ~NV5X_PDIPSLAY_SOR0_MASK) | intensity | NV5X_PDIPSLAY_SOR0_BRIGHTNESS_CONTROL_ENABLED,
@@ -234,7 +249,7 @@ static int nv5x_map(struct driver_data *dd)
 		if (reg_addr + dd->reg_size - 1 > bar_end)
 			return -ENODEV;
 		/* Now really map (The address need not be page-aligned.) */
-		dd->smartdimmer = ioremap_nocache(reg_addr, dd->reg_size);
+		dd->smartdimmer = ioremap(reg_addr, dd->reg_size);
 		if (!dd->smartdimmer)
 			return -ENXIO;
 	}
@@ -244,7 +259,7 @@ static int nv5x_map(struct driver_data *dd)
 		if (reg_addr + dd->reg_size - 1 > bar_end)
 			return -ENODEV;
 		/* Now really map (The address need not be page-aligned.) */
-		dd->smartdimmer = ioremap_nocache(reg_addr, dd->reg_size);
+		dd->smartdimmer = ioremap(reg_addr, dd->reg_size);
 		if (!dd->smartdimmer)
 			return -ENXIO;
 	}
@@ -254,7 +269,7 @@ static int nv5x_map(struct driver_data *dd)
 		/* Sanity check 2: Address should not exceed the PCI BAR */
 		if (reg_addr1 + dd->reg_size - 1 > bar_end)
 			return -ENODEV;
-		smartdimmer1 = ioremap_nocache(reg_addr1, dd->reg_size);
+		smartdimmer1 = ioremap(reg_addr1, dd->reg_size);
 		if (!smartdimmer1)
 			return -ENXIO;
 
@@ -262,7 +277,7 @@ static int nv5x_map(struct driver_data *dd)
 		/* Sanity check 2: Address should not exceed the PCI BAR */
 		if (reg_addr2 + dd->reg_size - 1 > bar_end)
 			return -ENODEV;
-		smartdimmer2 = ioremap_nocache(reg_addr2, dd->reg_size);
+		smartdimmer2 = ioremap(reg_addr2, dd->reg_size);
 		if (!smartdimmer2) {
 			iounmap(smartdimmer1);
 			return -ENXIO;
@@ -292,7 +307,7 @@ static void nv5x_unmap(struct driver_data *dd)
 	}
 }
 
-static struct driver_data nv5x_driver_data = {
+struct driver_data nv5x_driver_data = {
         .bar           = 0,
         .reg_offset1   = NV5X_PDISPLAY_OFFSET + NV5X_PDISPLAY_SOR0_BRIGHTNESS_LVDS,
         .reg_offset2   = NV5X_PDISPLAY_OFFSET + NV5X_PDISPLAY_SOR0_BRIGHTNESS_EDP,
@@ -328,19 +343,6 @@ void nvidiabl_force_model(struct driver_data **driver_data) {
                 printk(KERN_INFO "nvidiabl: forced to nv4x algorithm\n");
         }
 }
-
-/*
- * Device matching.
- * The list of supported devices was primarily taken from NvClock,
- * but only contains the mobile chips.
- */
-DEFINE_PCI_DEVICE_TABLE(nvidiabl_device_table) = {
-
-#include "nvidiabl-gpu.h"
-  
-        /* end of list */
-        { }
-};
 
 module_param_named(model, model, charp, 0644);
 MODULE_PARM_DESC(model, "backlight model, must be empty for autodetection, nv4x, or nv5x");
