@@ -1,3 +1,7 @@
+UPDATE: I don't maintain this repository either, really, but I updated it to work with Ubuntu
+6.14.0-33-generic kernel and confirmed it working on my MacbookPro5,4 with nouveau. It restored the
+F1, F2 display brightness down/up functionality.
+
 /!\ Please note that I don't maintain this repository anymore, please have a look at forked projects. /!\
 
 I wrote a little Linux driver based on Andy Wingo's work
